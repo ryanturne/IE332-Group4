@@ -1,0 +1,194 @@
+\documentclass{article}
+\usepackage{graphicx} 
+\usepackage{fullpage}
+\usepackage{listings}
+\usepackage{array}
+
+\title{IE 332 Assignment 1 Part B}
+\author{Jonathan Shu}
+\date{January 2026}
+
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+\begin{tabular}{p{8.2cm}|p{1.8cm}p{6.2cm}}
+{\bf C++} & \multicolumn{2}{c}{\bf Assembly} \\
+\hline
+struct Sensor \{ & & .text \\
+int   reading; & & .globl iterate \\
+char  valid; & iterate: & \\
+char  label[3]; & & pushq    \%rbp \\
+\}; & & \# Function prologue \\
+ & & movq     \%rsp, \%rbp \\
+struct Stats \{ & & \# Save callee saved registers \\
+int sum; & & pushq    \%rbx \\
+int positives; & & pushq    \%r12 \\
+int even\_sum; & & pushq    \%r13 \\
+int negatives; & & pushq    \%r14 \\
+\}; & & pushq    \%r15 \\
+Sensor sensors[3] = \{ & & pushq    \%r15 \\
+\{ 12, 1, \{'A', '1', 'X'\} \}, & & movq    \$0, \%rbx \\
+\{ -5, 0, \{'B', '2', 'Y'\} \}, & & \# for (int i = 0; i < 3; i++) \{ \\
+\{  7, 1, \{'C', '3', 'Z'\} \} & & \# Use \%rbx as the i \\
+\}; & for: & \\
+Stats S = \{0, 0, 0, 0\}; & & \# Do the for loop comparison \\
+... & & cmp     \$3, \%rbx \\
+for (int i = 0; i < 3; i++) \{ & & jge     end\_for \\
+if (sensors[i].valid != 0) \{ & & movq    \$sensors, \%rax \\
+if ((sensors[i].reading * 1) > 0) \{ & & \# if (sensors[i].valid != 0) \{ \\
+S.sum += sensors[i].reading; & & \# \%r12 = sensors[i].valid \\
+S.positives += 1; & & movzbq  4(\%rax, \%rbx, 8), \%r12 \\
+\} else if ((sensors[i].reading \% 2 + 2) \% 2 == 0) \{ & & cmp     \$0, \%r12 \\
+S.even\_sum += sensors[i].reading; & & je      outer\_end\_if \\
+\} else \{ & & movq    \$sensors, \%rax \\
+S.negatives += 1; & & movl    (\%rax, \%rbx, 8), \%r13d \\
+\} & & \# if ((sensors[i].reading * 1) > 0) \{ \\
+\} & & \# \%r13 = sensors[i].reading \\
+\} & & \# NOTE: reading is int (4 bytes) \\
+ & & imulq   \$1, \%r13 \\
+ & & cmp     \$0, \%r13 \\
+ & & jle     inner\_else\_if \\
+ & & movq    \$S, \%rax \\
+ & & \# S.sum += sensors[i].reading; \\
+ & & addl    \%r13d, (\%eax) \\
+ & & addl    \$1, 4(\%eax) \\
+ & & \# S.positives += 1; \\
+ & & jmp     inner\_end\_if \\
+\end{tabular}
+\begin{tabular}{p{8.2cm}|p{1.8cm}p{6.2cm}}
+ & inner\_else\_if: & \\
+ & & \# \} else if ((sensors[i].reading \% 2 + 2) \% 2 == 0) \{ \\
+ & & \# \%r14d = sensors[i].reading \\
+ & & movq    \$sensors, \%rax \\
+ & & movl    (\%rax, \%rbx, 8), \%r14d \\
+ & & movl    \%r14d, \%eax \\
+ & & \# Use \%rax as the var to calculate if condition \\
+ & & cltq \\
+ & & \# Used for sign divide \\
+ & & movq    \$2, \%rsi \\
+ & & idivl   \%esi \\
+ & & addl    \$2, \%edx \\
+ & & movl    \%edx, \%eax \\
+ & & cltq \\
+ & & idivl   \%esi \\
+ & & cmp     \$0, \%edx \\
+ & & jne     inner\_else \\
+ & & movq    \$S, \%rax \\
+ & & \# S.even\_sum += sensors[i].reading; \\
+ & & addl    \%r14d, 8(\%eax) \\
+ & & jmp     inner\_end\_if \\
+ & inner\_else: & \\
+ & & \# \} else \{ \\
+ & & movq    \$S, \%rax \\
+ & & \# S.negatives += 1; \\
+ & & addl    \$1, 12(\%eax) \\
+ & & jmp     inner\_end\_if \\
+ & inner\_end\_if: & \\
+ & & \# \} \\
+ & outer\_end\_if: & \\
+ & & \# \} \\
+ & & addq    \$1, \%rbx \\
+ & & \# This is the i++ \\
+ & & jmp     for \\
+ & end\_for: & \\
+ & & \# \} \\
+ & & popq    \%r15 \\
+ & & \# Restore callee saved registers \\
+ & & \# in reverse order of push \\
+ & & popq    \%r15 \\
+ & & popq    \%r14 \\
+ & & popq    \%r13 \\
+ & & popq    \%r12 \\
+ & & popq    \%rbx \\
+ & & leave \\
+ & & \# Restore stack and rbp and return \\
+ & & ret \\
+\hline
+\end{tabular}
+
+
+\newpage
+
+\begin{lstlisting}
+    struct Sensor {
+    int   reading;
+    char  valid;
+    char  label[3];
+};
+
+struct Stats {
+    int sum;
+    int positives;
+    int even_sum;
+    int negatives;
+};
+
+Sensor sensors[3] = {
+    { 12, 1, {'A', '1', 'X'} },
+    { -5, 0, {'B', '2', 'Y'} },
+    {  7, 1, {'C', '3', 'Z'} }
+};
+
+Stats S = {0, 0, 0, 0};
+
+...
+for (int i = 0; i < 3; i++) { 
+
+# say r1 is address of i
+# pseudocode: 
+# set i = 0 to begin with
+# compare i to see if it is less than 3
+# if it is not we exit the loop
+# if it is we run the embedded loop
+# then we add 1 to i
+
+    if (sensors[i].valid != 0) {
+
+    # compare sensors[i].valid to 0, see if they are equal
+    # if they are not, we continue
+    # if they are equal we skip ahead
+    
+        if ((sensors[i].reading * 1) > 0) {
+
+        # check if sensors[i].reading is greater than 0
+        # if it is, continue
+        # if it is not, skip ahead
+        
+            S.sum += sensors[i].reading;
+
+            # add sensors[i].reading to S.sum
+            # then set that sum as S.sum's value
+            
+            S.positives += 1;
+
+            # add 1 to S.positives
+            
+        } else if ((sensors[i].reading % 2 + 2) % 2 == 0) {
+
+        # place to jump to from earlier if statement
+        # check evenness of sensors[i].reading
+        # somehow get 
+        
+            S.even_sum += sensors[i].reading;
+
+            # add sensors[i].reading to S.even_sum
+            # then set that sum as S.even_sum's value
+            
+        } else {
+
+        # place to jump to from earlier if statement
+        
+            S.negatives += 1;
+
+            # add 1 to S.negatives
+        }
+    }
+}
+
+\end{lstlisting}
+\end{document}
