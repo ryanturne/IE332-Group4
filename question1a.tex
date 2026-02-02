@@ -1,0 +1,120 @@
+\documentclass{article}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{graphicx}
+
+\begin{document}
+\resizebox{0.8\textwidth}{!}{
+\begin{tabular}{p{9cm}|p{3cm}l}
+{\bf C++} & \multicolumn{2}{c}{\bf Assembly} \\
+\hline
+%Do we need main?
+int J[] = \{8, 0, 3, 0, 6, 0, 2, 0\}; %MAIN is issue
+& J: & .word 8,0,3,0,6,0,2,0  \\
+
+int M[] = \{0, -1, 0, -1\}; 
+& M: & .word 0,-1,0,-1 \\
+
+for(int outerCounter = 0; ; outerCounter++) \{
+& & li \$r8, 0 \\
+
+\hspace{0.5cm}int minimumJ = 1000;
+& label1: & li \$r3, 1000 \\
+\hspace{0.5cm}int selectedJPair = -1;
+& & li \$r5,-1 \\
+\hspace{0.5cm}for(int indexJ = 0; indexJ$<$4; indexJ++) \{
+& & li \$r1, 0 \\
+& label2: & la \$r9, J \\
+
+& & li \$r7, 2 \\
+
+& & mul \$r7, \$r1, \$r7 \\
+
+& & muli \$r7, \$r7, 4 \\
+
+& & add \$r9, \$r9, \$r7 \\
+\hspace{1cm}int value = J[indexJ * 2];
+& & lw \$r4, 0(\$r9) \\
+\hspace{1cm}int checkUsedJ = J[(indexJ * 2) + 1];
+& & lw \$r6, 4(\$r9) \\
+& & b label4 \\
+& & li \$r0, 0 \\
+\hspace{1cm}if (checkUsedJ $<= 0$) \{ & & bgt \$r6, 0, label4\\
+
+\hspace{1.5cm}if (value $<$ minimumJ) \{ & & blt \$r4, \$r3, label3\\
+\hspace{2cm}minimumJ = value;
+& label3: & mov \$r3, \$r4 \\
+\hspace{2cm}selectedJPair = indexJ;
+& & mov \$r5, \$r1 \\
+\hspace{1.5cm}\}
+\\
+\hspace{1cm}\}
+\\
+\hspace{0.5cm}\}\\
+
+& label4: & addi \$r1, \$r1, 1 \\
+& & li \$r10, 4 \\ 
+& & blt \$r1, \$r10, label2\\
+& & \\
+& & li \$r2, 0 \\
+
+\hspace{0.5cm}for(int indexM = 0; indexM$<$2; indexM++) \{
+& &\\
+& label5: & la \$r9, M \\
+
+& & li \$r7, 2 \\
+
+& & mul \$r7, \$r2, \$r7 \\
+
+& & mul \$r7, \$r7, 4 \\
+
+& & add \$r9, \$r9, \$r7 \\
+\hspace{1cm}value = M[indexM * 2];
+& & lw \$r4, 0(\$r9) \\
+\hspace{1cm}if (value $<$ outerCounter)\{ & & blt \$r4, \$r8, label6\\
+
+& & addi \$r2, \$r2, 1 \\
+& & li \$r10, 2 \\
+& & blt \$r2, \$r10, label5\\
+
+\hspace{1.5cm}J[(selectedJPair * 2) + 1] = 1;%needed?
+& label6: & la \$r9, J \\
+
+& & li \$r7, 2 \\
+
+& & mul \$r7, \$r5, \$r7 \\
+
+& & mul \$r7, \$r7, 4 \\
+
+& & add \$r9, \$r9, \$r7 \\
+ % check this
+& & sw \#1, 4(\$r9) \\
+% Needed?
+& & la \$r9, M \\
+
+& & li \$r7, 2 \\
+
+& & mul \$r7, \$r2, \$r7 \\
+
+& & mul \$r7, \$r7, 4 \\
+
+& & add \$r9, \$r9, \$r7 \\
+\hspace{1.5cm}M[indexM * 2] = outerCounter;
+& & sw \$r8, 0(\$r9) \\
+\hspace{1.5cm}M[(indexM * 2) + 1] = selectedJPair
+& & sw \$r5, 4(\$r9) \\
+\hspace{1.5cm}break;\\
+\hspace{1cm}\}
+& & \\
+
+& & addi \$r8, \$r8, 1 \\
+\hspace{0.5cm}\}& & b label1 \\
+
+\hspace{0.5cm}return;
+& label7: & done \\
+\} & & & \\
+
+
+\hline
+\end{tabular}
+}
+\end{document}
